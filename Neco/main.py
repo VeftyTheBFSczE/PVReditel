@@ -1,3 +1,5 @@
+
+
 class Bottle:
     def __init__(self, capacity_liters):
         self.capacity_liters = capacity_liters
@@ -10,6 +12,8 @@ class Bottle:
 
     def set_volume_liters(self, volume):
         self.check_status()
+        if not isinstance(volume, (int, float)):
+            raise ValueError("Volume must be a number.")
         if volume < 0:
             raise ValueError("Volume cannot be negative.")
         if volume > self.capacity_liters:
@@ -37,21 +41,7 @@ class Bottle:
     def open(self):
         self.closed = False
 
-
-
+# Test the modified Bottle class
 bottle = Bottle(2)
-bottle.set_volume_liters(1)
-print(f"Bottle volume: {bottle.get_volume_liters()} liters")
-
-bottle.set_volume_milliliters(1500)
-print(f"Bottle volume: {bottle.get_volume_milliliters()} ml")
-
-bottle.close()
-try:
-    bottle.set_volume_liters(1)
-except ValueError as e:
-    print(e)
-
-bottle.open()
-bottle.empty()
-print(f"Bottle volume after emptying: {bottle.get_volume_liters()} liters")
+bottle.set_volume_liters("Ahoj")  # This will now raise an error
+print(bottle.get_volume_liters())
