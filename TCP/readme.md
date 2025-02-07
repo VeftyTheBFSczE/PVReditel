@@ -26,7 +26,6 @@ Tento projekt představuje P2P (peer-to-peer) bankovní systém, kde každý uze
 ```
 
 
----
 
 ## Spuštění
 
