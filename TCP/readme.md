@@ -55,7 +55,7 @@ Server se spustí a začne naslouchat na definovaném portu.
 - **[Python dokumentace k socketserver](https://docs.python.org/3/library/socketserver.html)**  
 - **[Python dokumentace k threading a RLock](https://docs.python.org/3/library/threading.html)**  
 - **[Python dokumentace k modulu logging](https://docs.python.org/3/library/logging.html)**  
-- **Inspirační zdroje z předchozích projektů jako je threading a zámky využil jsem kus**  
+- **Inspirační zdroje z předchozích projektů jako je threading a zámky**  
 
 
 ---
