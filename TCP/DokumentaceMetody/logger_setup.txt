@@ -1,0 +1,17 @@
+tato funkce setup_logging() nastavuje logování pro aplikaci:
+
+logging.basicConfig(...) – inicializuje základní konfiguraci logování.
+
+level=logging.INFO – nastavuje úroveň logování na INFO, což znamená, že se budou zaznamenávat zprávy úrovně INFO, WARNING, ERROR a CRITICAL (ale ne DEBUG).
+
+format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+
+%(asctime)s – vloží čas, kdy byl log zaznamenán
+[%(levelname)s] – vypíše úroveň logu (INFO, ERROR, ...)
+%(name)s – vloží jméno loggeru (např. "Bank")
+%(message)s – samotná zpráva logu
+handlers=[...] – definuje, kam se mají logy zapisovat:
+
+logging.FileHandler("bank_node.log") – zapisuje logy do souboru bank_node.log
+logging.StreamHandler() – zároveň posílá logy do konzole (stdout)
+když se tato funkce zavolá na začátku aplikace, zajistí, že všechny logovací zprávy se budou zapisovat jak do souboru, tak i na standardní výstup.

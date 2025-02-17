@@ -1,0 +1,64 @@
+bank.py
+
+
+__init__(self)
+inicializuje instanci banky
+vytvoří reentrantní zámek (self.lock), což umožňuje bezpečnou práci s daty i při vícevláknovém přístupu
+načte data z úložiště (self.storage.load_data())
+pokud data obsahují účty, uloží je do self.accounts, jinak vytvoří prázdný slovník
+nastaví číslo dalšího účtu (self.next_account) na hodnotu z uložených dat nebo minimálně na 10000
+vytvoří logger (self.logger), který slouží k logování operací
+
+save(self)
+
+uloží aktuální stav banky (účty a číslo dalšího účtu) do souboru pomocí self.storage.save_data(data)
+používá self.lock, aby byla operace bezpečná při současném přístupu více vláken
+
+get_bank_code(self)
+
+vrátí kód banky (config.BANK_IP), což může být identifikátor banky
+
+create_account(self)
+
+ověří, zda ještě lze založit nový účet (limit je 99999)
+pokud ano, vytvoří nový účet s číslem self.next_account a zůstatkem 0
+zvýší číslo dalšího účtu (self.next_account += 1)
+uloží změny pomocí save()
+zaloguje vytvoření účtu (self.logger.info(...))
+vrátí číslo nově vytvořeného účtu
+deposit(self, account_number, amount)
+ověří, zda existuje účet (if key not in self.accounts)
+ověří, zda je částka kladná (if amount < 0)
+přičte částku k zůstatku účtu (self.accounts[key] += amount)
+uloží změny (save())
+zaloguje operaci (self.logger.info(...))
+
+withdraw(self, account_number, amount)
+
+ověří, zda existuje účet
+ověří, zda je částka kladná
+ověří, zda je na účtu dostatek prostředků (if self.accounts[key] < amount)
+pokud jsou všechny podmínky splněny, částku odečte ze zůstatku (self.accounts[key] -= amount)
+uloží změny (save())
+zaloguje operaci
+
+get_balance(self, account_number)
+
+ověří, zda existuje účet
+vrátí aktuální zůstatek účtu (return self.accounts[key])
+
+remove_account(self, account_number)
+
+ověří, zda existuje účet
+ověří, že účet má nulový zůstatek (if self.accounts[key] != 0)
+pokud ano, účet smaže (del self.accounts[key])
+uloží změny (save())
+zaloguje smazání účtu
+
+get_total_amount(self)
+
+sečte a vrátí celkový objem peněz na všech účtech (sum(self.accounts.values()))
+
+get_client_count(self)
+
+vrátí počet všech účtů (len(self.accounts))

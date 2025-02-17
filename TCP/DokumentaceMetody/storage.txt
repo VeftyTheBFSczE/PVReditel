@@ -1,0 +1,104 @@
+jak funguje jednotlivé metody?
+__init__(self, filepath)
+inicializuje objekt s cestou k souboru (filepath).
+nastaví logger pro zaznamenávání událostí.
+load_data(self)
+pokud soubor neexistuje, vrátí výchozí hodnotu:
+python
+Copy
+Edit
+{"accounts": {}, "next_account": 10000}
+accounts: slovník účtů (zatím prázdný).
+next_account: číslování nových účtů začne od 10000.
+pokud soubor existuje, pokusí se načíst data.
+pokud se při čtení objeví chyba (např. neplatný json), zaloguje chybu a vrátí výchozí hodnotu.
+save_data(self, data)
+uloží data do souboru ve formátu json s odsazením (indent=4 pro přehlednost).
+pokud dojde k chybě (např. problém se zápisem), zaloguje ji.
+jak je to použitelné?
+python
+Copy
+Edit
+storage = Storage("bank_data.json")
+data = storage.load_data()
+
+# manipulace s daty
+data["accounts"]["10000"] = {"balance": 500}
+
+storage.save_data(data)
+tento kód:
+
+načte data (nebo vytvoří nová).
+přidá účet s číslem 10000 a zůstatkem 500.
+uloží zpět do souboru.
+co by se dalo vylepšit?
+zámek souboru při zápisu (aby se předešlo souběžným zápisům).
+validace struktury json po načtení (např. kontrola, zda accounts je opravdu slovník).
+
+Vysvětlivky:
+✅ zámek souboru při zápisu (pomocí threading.Lock())
+✅ validaci datové struktury po načtení (kontrola, zda je správně formátovaná)
+✅ lepší logování chyb pro snadnější ladění
+
+python
+Copy
+Edit
+import json
+import os
+import logging
+import threading
+
+class Storage:
+    def __init__(self, filepath):
+        self.filepath = filepath
+        self.logger = logging.getLogger("Storage")
+        self.lock = threading.Lock()  # Zámek pro bezpečný zápis
+
+    def load_data(self):
+        """Načte data z JSON souboru. Pokud soubor neexistuje nebo je poškozený, vrátí výchozí hodnoty."""
+        if not os.path.exists(self.filepath):
+            self.logger.info("Datový soubor neexistuje, inicializuji nová data.")
+            return self.default_data()
+
+        try:
+            with open(self.filepath, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            # Ověření struktury dat
+            if not self.validate_data(data):
+                self.logger.error("Neplatná struktura dat, inicializuji výchozí hodnoty.")
+                return self.default_data()
+
+            return data
+        except (json.JSONDecodeError, IOError) as e:
+            self.logger.error(f"Chyba při načítání dat: {e}")
+            return self.default_data()
+
+    def save_data(self, data):
+        """Bezpečně uloží data do JSON souboru s využitím zámku."""
+        with self.lock:
+            try:
+                with open(self.filepath, "w", encoding="utf-8") as f:
+                    json.dump(data, f, ensure_ascii=False, indent=4)
+                self.logger.info("Data byla úspěšně uložena.")
+            except IOError as e:
+                self.logger.error(f"Chyba při ukládání dat: {e}")
+
+    def default_data(self):
+        """Vrátí výchozí strukturu dat."""
+        return {"accounts": {}, "next_account": 10000}
+
+    def validate_data(self, data):
+        """Zkontroluje, zda mají načtená data správnou strukturu."""
+        return (
+            isinstance(data, dict) and
+            "accounts" in data and isinstance(data["accounts"], dict) and
+            "next_account" in data and isinstance(data["next_account"], int)
+        )
+co je vylepšeno?
+✅ ochrana před souběžným zápisem → pokud více vláken chce zapisovat současně, použije se threading.Lock()
+✅ ochrana před poškozeným souborem → pokud je json nevalidní, zaloguje se chyba a použijí se výchozí hodnoty
+✅ validace dat → pokud jsou po načtení data v nesprávném formátu, použije se výchozí struktura
+✅ lepší logování → všechny chyby jsou zalogovány pro snadnější ladění
+
+máš k tomu nějaké dotazy nebo úpravy? 😊

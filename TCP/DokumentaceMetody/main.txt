@@ -1,0 +1,29 @@
+logger_setup.setup_logging()
+Tato funkce je volána pro nastavení logování. Zařídí to, že všechny logy (např. informace o spuštění serveru, chyby apod.) budou zapisovány a zobrazovány na konzoli a zároveň ukládány do souboru.
+
+logger = logging.getLogger("Main")
+Tato řádka inicializuje logger, který se používá pro zaznamenávání informací specifických pro hlavní část aplikace (main). Tímto způsobem můžeme logovat události, které se vyskytují během běhu serveru.
+
+bank = Bank()
+Vytvoří instanci třídy Bank. Tato instance bude sloužit jako centrální objekt, který spravuje bankovní účty, transakce, a všechna související data. Veškeré operace s účty (vklady, výběry atd.) budou prováděny přes tuto instanci.
+
+BankRequestHandler.bank = bank
+Přiřazení instance Bank k atributu bank třídy BankRequestHandler znamená, že každý požadavek, který bude obsluhován tímto handlerem, bude mít přístup k instanci banky. Banka je tedy "sdílena" mezi všemi požadavky.
+
+server_address = ('', config.PORT)
+Tato řádka definuje adresu serveru. Prázdný řetězec pro IP adresu znamená, že server bude naslouchat na všech síťových rozhraních (tj. na všech IP adresách). Port je získán z konfigurace (config.PORT).
+
+with ThreadedTCPServer(server_address, BankRequestHandler) as server:
+Vytvoří instanci serveru, který bude naslouchat na definované adrese a portu. ThreadedTCPServer zajišťuje, že každý požadavek bude zpracován v samostatném vlákně, což umožňuje více klientům komunikovat se serverem současně (multithreading).
+
+logger.info(f"Server spuštěn na portu {config.PORT}")
+Logování informace o tom, že server byl spuštěn a naslouchá na definovaném portu.
+
+server.serve_forever()
+Tato metoda vstoupí do nekonečné smyčky, která přijímá a obsluhuje příchozí klientské požadavky. Server bude běžet a reagovat na požadavky až do jeho ukončení.
+
+except KeyboardInterrupt:
+Pokud je server přerušen uživatelem (např. stisknutím Ctrl+C v terminálu), server se správně ukončí a provede se zápis do logu o ukončení serveru.
+
+server.shutdown()
+Tato metoda je volána při ukončení serveru, čímž se ukončí jeho činnost a uvolní prostředky.

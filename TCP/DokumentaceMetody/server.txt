@@ -1,0 +1,150 @@
+handle(self)
+hlavní metoda pro obsluhu klientských požadavků.
+nastaví timeout pro spojení (self.request.settimeout(config.TIMEOUT)).
+čte data od klienta (self.rfile.readline()), dekóduje je a předá k dalšímu zpracování (self.process_command(command_line)).
+odpověď se pak odešle zpět klientovi (self.wfile.write(...)).
+pokud nastane chyba, zapíše ji do logu.
+
+process_command(self, command_line)
+zpracovává příkazy od klienta.
+rozdělí řetězec na části podle mezer (parts = command_line.split()).
+první část (cmd) určuje typ příkazu, zbytek jsou argumenty.
+provádí příslušnou akci podle příkazu:
+bc – získání ip banky.
+ac – vytvoření nového účtu.
+ad – vklad na účet.
+aw – výběr z účtu.
+ab – získání zůstatku.
+ar – zrušení účtu.
+ba – celková částka na účtech.
+bn – počet klientů banky.
+pokud je účet veden v jiné bance, zavolá forward_command().
+
+forward_command(self, command_str, target_ip)
+přeposílá příkazy na jiný bankovní server.
+prochází rozsah povolených portů (config.ALLOWED_PORT_RANGE) a zkouší se připojit na target_ip.
+pokud se do 5 sekund nepodaří spojení, vrátí timeout chybu.
+
+parse_account_string(self, account_str)
+ověřuje a rozděluje zadaný řetězec účtu (<account>/<ip>) na číslo účtu a ip adresu banky.
+kontroluje správný formát čísla účtu i ip.
+
+validate_ip(self, ip)
+kontroluje, zda je zadaný řetězec platná ip adresa.
+rozdělí ip podle . a ověří, že každý segment je v rozsahu 0–255.
+
+threadedtcpserver
+dědí od socketserver.threadingmixin a socketserver.tcpserver, což umožňuje obsluhovat více klientů současně ve vláknech (threaded tcp server).
+
+
+
+Vysvětlivky:
+1. zahájení měření času
+python
+Copy
+Edit
+start_time = time.time()
+last_error = ""
+změří čas začátku přeposílání, aby bylo možné zjistit, zda se vejde do config.TIMEOUT.
+proměnná last_error uchovává poslední chybu při pokusu o připojení.
+2. pokus o připojení na různé porty
+python
+Copy
+Edit
+for target_port in config.ALLOWED_PORT_RANGE:
+zkouší se připojit na cílový ip (target_ip) přes všechny možné porty, které jsou definované v config.ALLOWED_PORT_RANGE.
+python
+Copy
+Edit
+if time.time() - start_time > config.TIMEOUT:
+    return f"ER Timeout: Bankovní server {target_ip} nelze najít (zkoumané porty: {list(config.ALLOWED_PORT_RANGE)})"
+pokud celkový čas pokusu přesáhne config.TIMEOUT, ukončí hledání a vrátí chybu.
+3. pokus o spojení se serverem
+python
+Copy
+Edit
+try:
+    with socket.create_connection((target_ip, target_port), timeout=1) as sock:
+zkusí vytvořit tcp spojení na target_ip a target_port.
+pokud do 1 sekundy server neodpoví, přejde na další port.
+python
+Copy
+Edit
+sock.sendall((command_str + "\n").encode("utf-8"))
+po úspěšném připojení pošle serveru příkaz (command_str).
+python
+Copy
+Edit
+with sock.makefile("r", encoding="utf-8") as f:
+    response = f.readline().strip()
+    if response:
+        return response
+čeká na odpověď od serveru a pokud ji dostane, vrátí ji volajícímu (return response).
+4. zachycení chyb a pokračování na další port
+python
+Copy
+Edit
+except Exception as e:
+    last_error = str(e)
+    continue  # Pokračuje na další port
+pokud připojení selže (např. server neběží na daném portu), uloží chybu do last_error a zkusí další port.
+5. pokud žádný port neodpoví
+python
+Copy
+Edit
+return f"ER Chyba při komunikaci s bankou {target_ip} (zkoumané porty: {list(config.ALLOWED_PORT_RANGE)}): {last_error}"
+pokud se nepodaří připojit na žádný port, vrátí chybu s posledním zaznamenaným důvodem selhání.
+shrnutí
+prochází možné porty bankovního serveru (config.ALLOWED_PORT_RANGE).
+pokud se nepřipojí do config.TIMEOUT, vrátí chybu.
+při úspěšném spojení pošle příkaz a čeká na odpověď.
+pokud žádný port neodpoví, vrátí chybovou zprávu.
+tato metoda umožňuje komunikaci mezi více bankami – pokud účet patří jiné bance, příkaz se přepošle správnému serveru.
+
+
+
+
+
+
+
+
+
+makefile v tomto kontextu není soubor Makefile, ale metoda socket.makefile(), která slouží k vytvoření souborového objektu pro čtení a zápis po síti.
+
+co dělá sock.makefile("r", encoding="utf-8")?
+
+with sock.makefile("r", encoding="utf-8") as f:
+    response = f.readline().strip()
+sock.makefile("r", encoding="utf-8") vytvoří textový souborový objekt připojený ke sock.
+f.readline().strip() přečte jeden řádek odpovědi ze serveru a odstraní bílé znaky (např. \n).
+proč používat makefile místo sock.recv()?
+zjednodušuje čtení textových dat
+
+sock.recv() vrací raw bajtová data a je potřeba řešit ruční dekódování a oddělování řádků.
+makefile() vrací textový souborový objekt, kde lze snadno volat readline(), read() apod.
+lepší správa paměti
+
+makefile() interně používá buffering, což zlepšuje výkon při čtení větších bloků dat.
+automatické zavření
+
+souborový objekt f se zavře automaticky při ukončení with bloku.
+alternativa bez makefile()
+bez makefile() by to vypadalo takto:
+
+
+response = sock.recv(1024).decode("utf-8").strip()
+ale:
+
+pokud odpověď přesáhne 1024 bajtů, musíme ručně číst znovu.
+musíme ručně dekódovat bajty na text.
+nemáme pohodlné metody jako readline().
+shrnutí
+makefile("r") zjednodušuje čtení ze socketu podobně jako čtení ze souboru.
+umožňuje použít readline(), což je pohodlnější než recv().
+interně používá buffering, což je efektivnější než opakované volání recv().
+
+
+
+
+
+
